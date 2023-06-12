@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel
 
 
@@ -75,3 +77,30 @@ class Reservation(BaseModel):
     """订单ID"""
     server: int
     """已预约服务器编号"""
+
+
+class UserInfo(BaseModel):
+    ONLINE = '1'
+    """用户信息"""
+    id: int
+    """用户ID"""
+    username: str
+    """用户名"""
+    password: str
+    """密码"""
+    wallet: str
+    """余额"""
+    email: str
+    """用户邮箱"""
+    readnid: Optional[str]
+    """已读通知ID"""
+    online: str
+    """Cookies生命标记"""
+    onlinetoken: str
+    """用户API Token"""
+    lastip: Optional[str]
+    """上次登陆IP"""
+    lasttime: Optional[str]
+    """上次登录时间"""
+    times_draw: Optional[str]
+    """剩余抽奖次数"""

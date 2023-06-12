@@ -4,7 +4,7 @@ from typing import Literal, Optional, Union
 
 from .utils.const import API, MLSUB
 from .utils.errors import ApiException
-from .models import Channel, Event, Reservation
+from .models import Channel, Event, Reservation, UserInfo
 
 NETWORK_NAMES = {
     'Kanto': '关东广域',
@@ -47,7 +47,7 @@ class TVSubscriber:
     def _raise_for_json_status(self, msg=''):
         # assert json status
         if self.last_json['response_code'] != 200:
-            raise ApiException(msg + (self.last_json.get('information') or ''))
+            raise ApiException(msg + (self.last_json.get('information') or ''), response_json=self.last_json)
         return self.last_json
 
     def login(self, username: str, password: str) -> dict:
@@ -147,11 +147,11 @@ class TVSubscriber:
         self.last_json = self._parse_json('网络名错误')
         self._raise_for_json_status('获取频道列表失败！')
         if 'channels' not in self.last_json:
-            raise ApiException('频道列表信息格式错误！')
+            raise ApiException('频道列表响应信息格式错误！', response_json=self.last_json)
         try:
             channels = [Channel(**channel) for channel in self.last_json['channels']]
         except Exception as e:
-            raise ApiException('频道列表信息格式错误！' + str(e))
+            raise ApiException('频道列表响应信息格式错误！' + str(e), response_json=self.last_json)
 
         return channels
 
@@ -248,11 +248,11 @@ class TVSubscriber:
         # note: egptoken可能会随时间改变
         self._raise_for_json_status('获取EPG信息失败！')
         if 'events' not in self.last_json:
-            raise ApiException('节目信息格式错误！')
+            raise ApiException('节目响应信息格式错误！', response_json=self.last_json)
         try:
             events = [Event(**event) for event in self.last_json['events']]
         except Exception as e:
-            raise ApiException('节目信息格式错误！' + str(e))
+            raise ApiException('节目响应信息格式错误！' + str(e), response_json=self.last_json)
 
         return events
 
@@ -344,9 +344,16 @@ class TVSubscriber:
         # {'response_code': 403,
         #  'responsetime': '2023-05-08 18:32:31',
         #  'information': '本节目您已经预约过了，请不要重复预约'}
-        return self.last_json
+        if 'reservation' not in self.last_json:
+            raise ApiException('预约结果响应信息格式错误！', response_json=self.last_json)
+        try:
+            reservation = Reservation(**self.last_json['reservation'])
+        except Exception as e:
+            raise ApiException('预约结果响应信息格式错误！' + str(e), response_json=self.last_json)
 
-    def get_userinfo(self):
+        return reservation
+
+    def get_userinfo(self) -> UserInfo:
         """
         获取账户信息
 
@@ -396,7 +403,14 @@ class TVSubscriber:
         # error example:
         # {'response_code': 401, 'responsetime': '2023-06-12 22:05:51', 'information': '鉴权失败，Token错误'}
         self._raise_for_json_status('获取用户信息失败！')
-        return self.last_json
+        if 'userinfo' not in self.last_json:
+            raise ApiException('用户信息响应信息格式错误！', response_json=self.last_json)
+        try:
+            userinfo = UserInfo(**self.last_json['userinfo'])
+        except Exception as e:
+            raise ApiException('用户信息响应信息格式错误！' + str(e), response_json=self.last_json)
+
+        return userinfo
 
     def get_order(self,
                   index: int = 1,
@@ -494,3 +508,11 @@ class TVSubscriber:
         self.last_json = self._parse_json()
         self._raise_for_json_status('获取预约列表失败！')
         return self.last_json
+
+    @property
+    def online(self) -> bool:
+        try:
+            user = self.get_userinfo()
+        except ApiException:
+            return False
+        return user.online == user.ONLINE
