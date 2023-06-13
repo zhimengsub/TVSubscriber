@@ -510,7 +510,7 @@ class TVSubscriber:
         return self.last_json
 
     @property
-    def online(self) -> bool:
+    def is_online(self) -> bool:
         try:
             user = self.get_userinfo()
         except ApiException:
