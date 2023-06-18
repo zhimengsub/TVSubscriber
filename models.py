@@ -1,6 +1,9 @@
+import datetime
 from typing import Optional
 
 from pydantic import BaseModel
+
+from .utils.const import NETWORKS
 
 
 class Channel(BaseModel):
@@ -11,12 +14,30 @@ class Channel(BaseModel):
     """频道SID"""
     tsid: str = None
     """频道TSID"""
-    epgtoken: str
-    """请求EPG需要的token"""
+    epgtoken: Optional[str]
+    """请求EPG需要的token。可以被刷新，因此设为Optional"""
+    network: NETWORKS
+    """频道所属网络"""
+    def __eq__(self, other):
+        if isinstance(other, Channel):
+            return (
+                self.service == other.service and
+                self.sid == other.sid and
+                self.tsid == other.tsid and
+                self.network == other.network
+            )
+        return False
+
+    def __hash__(self):
+        return hash(','.join([self.service, self.sid, self.tsid if self.tsid else '', self.network]))
 
 
 class Event(BaseModel):
     """节目"""
+    __FORMAT_STARTDATE__ = '%Y/%m/%d'
+    """节目播出日期解析格式"""
+    __FORMAT_STARTTIME__ = '%H:%M:%S'
+    """节目开始时间解析格式"""
     sid: str
     """频道SID"""
     tsid: str
@@ -27,9 +48,9 @@ class Event(BaseModel):
     """节目EID"""
     service: str
     """频道名称"""
-    startdate: str
+    startdate: datetime.date
     """节目播出日期"""
-    starttime: str
+    starttime: datetime.time
     """节目开始时间"""
     timestamp: int
     """节目开始时间戳"""
@@ -45,28 +66,38 @@ class Event(BaseModel):
     """节目说明"""
     event_ext_text: str
     """节目补充说明"""
-    category: str
+    category: Optional[str]
     """节目分类（英语）"""
     resolution: str
     """播出分辨率（1080i，480i）"""
-    network: str
+    network: NETWORKS
     """频道所属网络（Kanto，Kansai，Nagoya，BS，CS）"""
     price: float
     """价格"""
     reservetoken: str
     """预约需要的token"""
 
+    def __init__(self, *, startdate: str, starttime: str, **kwargs):
+        try:
+            startdate = datetime.datetime.strptime(startdate, self.__FORMAT_STARTDATE__).date()
+        except ValueError:
+            startdate = datetime.datetime.strptime(startdate, '%Y-%m-%d').date()
+        starttime = datetime.datetime.strptime(starttime, self.__FORMAT_STARTTIME__).time()
+        super().__init__(startdate=startdate, starttime=starttime, **kwargs)
+
 
 class Reservation(BaseModel):
     """预约结果"""
+    __FORMAT_STARTTIME__: str = '%Y-%m-%d %H:%M:%S'
+    """节目开始时间解析格式"""
     sid: str
     """频道SID"""
     eid: str
     """节目EID"""
     service: str
     """频道名称"""
-    starttime: str
-    """节目开始时间"""
+    starttime: datetime.datetime
+    """节目开始日期时间"""
     duration: str
     """时长（分钟）"""
     price: float
@@ -77,11 +108,18 @@ class Reservation(BaseModel):
     """订单ID"""
     server: int
     """已预约服务器编号"""
+    def __init__(self, *, starttime: str, **kwargs):
+        starttime = datetime.datetime.strptime(starttime, self.__FORMAT_STARTTIME__)
+        super().__init__(starttime=starttime, **kwargs)
+
 
 
 class UserInfo(BaseModel):
-    ONLINE = '1'
     """用户信息"""
+    __ONLINE__: str = '1'
+    """在线状态"""
+    __FORMAT_LASTTIME__: str = '%Y-%m-%d %H:%M:%S'
+    """上次登录时间解析格式"""
     id: int
     """用户ID"""
     username: str
@@ -100,7 +138,10 @@ class UserInfo(BaseModel):
     """用户API Token"""
     lastip: Optional[str]
     """上次登陆IP"""
-    lasttime: Optional[str]
-    """上次登录时间"""
+    lasttime: Optional[datetime.datetime]
+    """上次登录日期时间"""
     times_draw: Optional[str]
     """剩余抽奖次数"""
+    def __init__(self, *, lasttime: str, **kwargs):
+        lasttime = datetime.datetime.strptime(lasttime, self.__FORMAT_LASTTIME__)
+        super().__init__(lasttime=lasttime, **kwargs)

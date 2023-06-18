@@ -2,22 +2,10 @@ from json import JSONDecodeError
 import httpx
 from typing import Literal, Optional, Union
 
-from .utils.const import API, MLSUB
+from .utils.const import API, MLSUB, NETWORKS
 from .utils.errors import ApiException
 from .models import Channel, Event, Reservation, UserInfo
 
-NETWORK_NAMES = {
-    'Kanto': '关东广域',
-    'Kansai': '近畿（关西）广域',
-    'Nagoya': '中京名古屋广域',
-    'Hokaido': '北海道',
-    'Other': '其他地方频道',
-    'BS': 'BS卫星',
-    'CS': 'CS110',
-    'CS124': 'CS124'
-}
-
-NETWORKS = Literal['Kanto', 'Kansai', 'Nagoya', 'Hokaido', 'Other', 'BS', 'CS', 'CS124']
 
 # 不同api返回的id数据类型不一样，内部统一以str处理
 class TVSubscriber:
@@ -50,7 +38,7 @@ class TVSubscriber:
             raise ApiException(msg + (self.last_json.get('information') or ''), response_json=self.last_json)
         return self.last_json
 
-    def login(self, username: str, password: str) -> dict:
+    def login(self, username: str, password: str, **kwargs) -> dict:
         """
         用户登陆
 
@@ -85,7 +73,8 @@ class TVSubscriber:
                                             data={
                                                 'username': username,
                                                 'password': password,
-                                            })
+                                            },
+                                            **kwargs)
         # assert status_code
         self._last_resp.raise_for_status()
         self.last_json = self._parse_json()
@@ -98,7 +87,7 @@ class TVSubscriber:
         self._token = self.last_json['onlinetoken']
         return self.last_json
 
-    def get_channels(self, network: NETWORKS) -> list[Channel]:
+    def get_channels(self, network: NETWORKS, **kwargs) -> list[Channel]:
         """
         获取频道列表，名称与取值对应关系见`NETWORK_NAMES`
 
@@ -140,7 +129,8 @@ class TVSubscriber:
                                             data={
                                                 'token': self._token,
                                                 'network': network
-                                            })
+                                            },
+                                            **kwargs)
         # assert status_code
         self._last_resp.raise_for_status()
         # .json() is None if failed
@@ -149,13 +139,13 @@ class TVSubscriber:
         if 'channels' not in self.last_json:
             raise ApiException('频道列表响应信息格式错误！', response_json=self.last_json)
         try:
-            channels = [Channel(**channel) for channel in self.last_json['channels']]
+            channels = [Channel(**channel, network=network) for channel in self.last_json['channels']]
         except Exception as e:
             raise ApiException('频道列表响应信息格式错误！' + str(e), response_json=self.last_json)
 
         return channels
 
-    def get_epgs(self, sid: Union[int, str], network: NETWORKS, epgtoken, tsid: Union[int, str] = None) -> list[Event]:
+    def get_epgs(self, sid: Union[int, str], network: NETWORKS, epgtoken, tsid: Union[int, str] = None, **kwargs) -> list[Event]:
         """
         获取EPG，即指定频道的具体节目表
 
@@ -239,25 +229,53 @@ class TVSubscriber:
         }
         if tsid:
             data['tsid'] = tsid
-        self._last_resp = self._client.post(API.GET_EPG, data=data)
+        self._last_resp = self._client.post(API.GET_EPG, data=data, **kwargs)
         # assert status_code
         self._last_resp.raise_for_status()
         self.last_json = self._parse_json()
         # on fail:
         # {'response_code': 403, 'responsetime': '2023-05-08 17:08:46', 'information': 'EPG Token错误'}
         # note: egptoken可能会随时间改变
+        # empty events:
+        # {'response_code': 200,
+        #  'responsetime': '2023-06-18 15:37:02',
+        #  'service': None,
+        #  'mins30price': '3.5',
+        #  'count': None,
+        #  'events': []}
         self._raise_for_json_status('获取EPG信息失败！')
         if 'events' not in self.last_json:
             raise ApiException('节目响应信息格式错误！', response_json=self.last_json)
         try:
-            events = [Event(**event) for event in self.last_json['events']]
+            events = [Event(**event) for event in self.last_json['events']
+                      if event.get('event_name') and event.get('event_text') and event.get('category')]
         except Exception as e:
+            # bad event:
+            # { 'sid': '17408',
+            #  'tsid': '32480',
+            #  'onid': '32480',
+            #  'eid': '59722',
+            #  'service': 'ＮＨＫ総合１・仙台',
+            #  'startdate': '2023/06/19',
+            #  'starttime': '01:25:00',
+            #  'timestamp': 1687109100,
+            #  'week': '1',
+            #  'week_text': '月',
+            #  'duration': 155,
+            #  'event_name': '放送休止', | None
+            #  'event_text': '节目无说明信息',
+            #  'event_ext_text': '节目无补充信息',
+            #  'category': None,
+            #  'resolution': '1080i',
+            #  'network': 'Other',
+            #  'price': 120,
+            #  'reservetoken': '1c293c701da634da2b5f1ae3b64ef931'}
             raise ApiException('节目响应信息格式错误！' + str(e), response_json=self.last_json)
 
         return events
 
     def subscribe(self, sid: Union[int, str], eid: Union[int, str], tsid: Union[int, str], onid: Union[int, str],
-                  price: float, network: str, reservetoken: str) -> Reservation:
+                  price: float, network: str, reservetoken: str, **kwargs) -> Reservation:
         """
         预约节目
 
@@ -335,7 +353,8 @@ class TVSubscriber:
                                                 'price': price,
                                                 'network': network,
                                                 'reservetoken': reservetoken
-                                            })
+                                            },
+                                            **kwargs)
         # assert status_code
         self._last_resp.raise_for_status()
         self.last_json = self._parse_json()
@@ -353,7 +372,7 @@ class TVSubscriber:
 
         return reservation
 
-    def get_userinfo(self) -> UserInfo:
+    def get_userinfo(self, **kwargs) -> UserInfo:
         """
         获取账户信息
 
@@ -396,7 +415,8 @@ class TVSubscriber:
         self._last_resp = self._client.post(API.USERINFO,
                                             data={
                                                 'token': self._token,
-                                            })
+                                            },
+                                            **kwargs)
         # assert status_code
         self._last_resp.raise_for_status()
         self.last_json = self._parse_json()
@@ -419,7 +439,8 @@ class TVSubscriber:
                   air_date: str = None,
                   keyword: str = None,
                   username: str = None,
-                  operator: str = None):
+                  operator: str = None,
+                  **kwargs):
         """
         获取预约列表
 
@@ -502,17 +523,19 @@ class TVSubscriber:
         if operator:
             data['operator'] = operator
 
-        self._last_resp = self._client.post(API.GET_ORDER, data=data)
+        self._last_resp = self._client.post(API.GET_ORDER, data=data, **kwargs)
         # assert status_code
         self._last_resp.raise_for_status()
         self.last_json = self._parse_json()
         self._raise_for_json_status('获取预约列表失败！')
         return self.last_json
 
-    @property
     def is_online(self) -> bool:
         try:
             user = self.get_userinfo()
         except ApiException:
             return False
-        return user.online == user.ONLINE
+        return user.online == UserInfo.__ONLINE__
+
+    def __repr__(self):
+        return 'TVSubscriber("' + self._username + '")'
