@@ -190,7 +190,7 @@ class TVSubscriber:
           -category		str	节目分类（英语）
           -resolution	str	播出分辨率（1080i，480i）
           -network		str	频道所属网络（Kanto，Kansai，Nagoya，BS，CS）
-          -price		float	价格
+          -price		int|float	价格
           -reservetoken	str	预约需要的token
 
         {'response_code': 200,
@@ -275,7 +275,7 @@ class TVSubscriber:
         return events
 
     def subscribe(self, sid: Union[int, str], eid: Union[int, str], tsid: Union[int, str], onid: Union[int, str],
-                  price: float, network: str, reservetoken: str, **kwargs) -> Reservation:
+                  price: Union[int, float], network: str, reservetoken: str, **kwargs) -> Reservation:
         """
         预约节目
 
@@ -315,7 +315,7 @@ class TVSubscriber:
           -service		str	频道名称
           -starttime	str	节目开始时间
           -duration		str	时长（分钟）
-          -price		float	价格
+          -price		str	价格（若为整数则不能带小数点）
           -resid		str	预约ID
           -orderid		str	订单ID
           -server		int	已预约服务器编号和

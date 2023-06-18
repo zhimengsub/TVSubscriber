@@ -1,5 +1,5 @@
 import datetime
-from typing import Optional
+from typing import Optional, Union
 
 from pydantic import BaseModel
 
@@ -72,7 +72,7 @@ class Event(BaseModel):
     """播出分辨率（1080i，480i）"""
     network: NETWORKS
     """频道所属网络（Kanto，Kansai，Nagoya，BS，CS）"""
-    price: float
+    price: Union[int, float]
     """价格"""
     reservetoken: str
     """预约需要的token"""
@@ -100,7 +100,7 @@ class Reservation(BaseModel):
     """节目开始日期时间"""
     duration: str
     """时长（分钟）"""
-    price: float
+    price: str
     """价格"""
     resid: str
     """预约ID"""
