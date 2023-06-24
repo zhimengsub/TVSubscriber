@@ -3,7 +3,7 @@ from typing import Optional, Union
 
 from pydantic import BaseModel
 
-from .utils.const import NETWORKS
+from tvsubscriber.utils.const import NETWORKS
 
 
 class Channel(BaseModel):
@@ -18,18 +18,25 @@ class Channel(BaseModel):
     """请求EPG需要的token。可以被刷新，因此设为Optional"""
     network: NETWORKS
     """频道所属网络"""
+
+    def __hash__(self):
+        return hash((self.service, self.network, self.sid))
+
     def __eq__(self, other):
-        if isinstance(other, Channel):
+        # be careful with isinstance! packages imported from different levels would result in false.
+        if (
+            hasattr(other, 'service') and
+            hasattr(other, 'sid') and
+            hasattr(other, 'tsid') and
+            hasattr(other, 'network')
+        ):
             return (
                 self.service == other.service and
                 self.sid == other.sid and
-                self.tsid == other.tsid and
+                self.tsid is None and other.tsid is None or self.tsid == other.tsid and
                 self.network == other.network
             )
         return False
-
-    def __hash__(self):
-        return hash(','.join([self.service, self.sid, self.tsid if self.tsid else '', self.network]))
 
 
 class Event(BaseModel):

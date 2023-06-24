@@ -9,7 +9,7 @@
 具体使用请自行查看`TVSubscriber.py`内的注释，总的来说需要从`login()`开始依次调用。
 
 ```python
-from TVSubscriber import TVSubscriber
+from tvsubscriber.TVSubscriber import TVSubscriber
 
 username = 'xxx'
 password = 'xxx'

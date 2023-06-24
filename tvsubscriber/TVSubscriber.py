@@ -1,16 +1,26 @@
+import copy
+import json
 from json import JSONDecodeError
 import httpx
-from typing import Literal, Optional, Union
+from typing import Literal, Optional, Union, Any, Type
 
-from .utils.const import API, MLSUB, NETWORKS
-from .utils.errors import ApiException
-from .models import Channel, Event, Reservation, UserInfo
+from tvsubscriber.utils.const import API, MLSUB, NETWORKS
+from tvsubscriber.utils.errors import ApiException
+from tvsubscriber.models import Channel, Event, Reservation, UserInfo
 
 
 # 不同api返回的id数据类型不一样，内部统一以str处理
 class TVSubscriber:
     def __init__(self):
-        self._client = httpx.Client(
+        self._client = self._default_client()
+        self._username = ''
+        self._token = ''
+        self.last_json = {}
+        self._last_resp = None  # type: Optional[httpx.Response]
+
+    @staticmethod
+    def _default_client() -> httpx.Client:
+        return httpx.Client(
             base_url=MLSUB,
             headers={
                 "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0",
@@ -19,10 +29,6 @@ class TVSubscriber:
             #     "all://": "http://localhost:9999",
             # }
         )
-        self._username = ''
-        self._token = ''
-        self.last_json = {}
-        self._last_resp = None  # type: Optional[httpx.Response]
 
     def _parse_json(self, msg=''):
         # assert decoded json and raise ApiException with msg
@@ -42,7 +48,7 @@ class TVSubscriber:
         """
         用户登陆
 
-        raise `ApiException` on fail
+        raise `ApiException` on fail, watch out for httpx.ConnectError if bad vpn used.
 
         Parameters
         ----------
@@ -539,3 +545,28 @@ class TVSubscriber:
 
     def __repr__(self):
         return 'TVSubscriber("' + self._username + '")'
+
+    def __copy__(self):
+        new_object = self.__class__()
+        new_object._username = self._username
+        new_object._token = self._token
+        return new_object
+
+    def __deepcopy__(self, memo):
+        return self.__copy__()
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # exclude client when pickling due to it has a lock (_thread.RLock object) that cannot be pickled
+        del state['_client']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self._client = self._default_client()
+
+if __name__ == '__main__':
+    ber = TVSubscriber()
+    import pickle
+    with open('temp.pkl', 'wb') as f:
+        pickle.dump(ber, f)
