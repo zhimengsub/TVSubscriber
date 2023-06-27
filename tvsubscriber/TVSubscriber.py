@@ -75,12 +75,14 @@ class TVSubscriber:
              'information': '已成功登陆用户：xxxx'}
 
         """
-        self._last_resp = self._client.post(API.LOGIN,
-                                            data={
-                                                'username': username,
-                                                'password': password,
-                                            },
-                                            **kwargs)
+        self._last_resp = self._client.post(
+            API.LOGIN,
+            data={
+                'username': username,
+                'password': password,
+            },
+            **kwargs
+        )
         # assert status_code
         self._last_resp.raise_for_status()
         self.last_json = self._parse_json()
@@ -131,12 +133,14 @@ class TVSubscriber:
             },...
           ]}
         """
-        self._last_resp = self._client.post(API.GET_CHANNEL,
-                                            data={
-                                                'token': self._token,
-                                                'network': network
-                                            },
-                                            **kwargs)
+        self._last_resp = self._client.post(
+            API.GET_CHANNEL,
+            data={
+                'token': self._token,
+                'network': network
+            },
+            **kwargs
+        )
         # assert status_code
         self._last_resp.raise_for_status()
         # .json() is None if failed
@@ -349,18 +353,20 @@ class TVSubscriber:
            'server': 0}
           }
         """
-        self._last_resp = self._client.post(API.SUBSCRIBE,
-                                            data={
-                                                'token': self._token,
-                                                'sid': sid,
-                                                'eid': eid,
-                                                'tsid': tsid,
-                                                'onid': onid,
-                                                'price': price,
-                                                'network': network,
-                                                'reservetoken': reservetoken
-                                            },
-                                            **kwargs)
+        self._last_resp = self._client.post(
+            API.SUBSCRIBE,
+            data={
+                'token': self._token,
+                'sid': sid,
+                'eid': eid,
+                'tsid': tsid,
+                'onid': onid,
+                'price': price,
+                'network': network,
+                'reservetoken': reservetoken
+            },
+            **kwargs
+        )
         # assert status_code
         self._last_resp.raise_for_status()
         self.last_json = self._parse_json()
@@ -418,11 +424,13 @@ class TVSubscriber:
               'lasttime': '2023-05-08 18:05:52',
               'times_draw': '0'}}
         """
-        self._last_resp = self._client.post(API.USERINFO,
-                                            data={
-                                                'token': self._token,
-                                            },
-                                            **kwargs)
+        self._last_resp = self._client.post(
+            API.USERINFO,
+            data={
+                'token': self._token,
+            },
+            **kwargs
+        )
         # assert status_code
         self._last_resp.raise_for_status()
         self.last_json = self._parse_json()
