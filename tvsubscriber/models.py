@@ -12,7 +12,7 @@ class Channel(BaseModel):
     """频道名称"""
     sid: str
     """频道SID"""
-    tsid: str = None
+    tsid: Optional[str]
     """频道TSID"""
     epgtoken: Optional[str]
     """请求EPG需要的token。可以被刷新，因此设为Optional"""
@@ -92,6 +92,29 @@ class Event(BaseModel):
         starttime = datetime.datetime.strptime(starttime, self.__FORMAT_STARTTIME__).time()
         super().__init__(startdate=startdate, starttime=starttime, **kwargs)
 
+    def __hash__(self):
+        return hash((self.network, self.sid, self.tsid, self.onid, self.eid, self.price))
+
+    def __eq__(self, other):
+        # be careful with isinstance! packages imported from different levels would result in false.
+        if (
+            hasattr(other, 'eid') and
+            hasattr(other, 'sid') and
+            hasattr(other, 'tsid') and
+            hasattr(other, 'onid') and
+            hasattr(other, 'price') and
+            hasattr(other, 'network')
+        ):
+            return (
+                self.eid == other.eid and
+                self.sid == other.sid and
+                self.tsid is None and other.tsid is None or self.tsid == other.tsid and
+                self.onid == other.onid and
+                self.price == other.price and
+                self.network == other.network
+            )
+        return False
+
 
 class Reservation(BaseModel):
     """预约结果"""
@@ -118,7 +141,6 @@ class Reservation(BaseModel):
     def __init__(self, *, starttime: str, **kwargs):
         starttime = datetime.datetime.strptime(starttime, self.__FORMAT_STARTTIME__)
         super().__init__(starttime=starttime, **kwargs)
-
 
 
 class UserInfo(BaseModel):
