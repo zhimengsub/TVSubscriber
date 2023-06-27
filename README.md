@@ -2,6 +2,10 @@
 
 片源录制接口适配
 
+## Requirements
+
+`pip install pydantic`
+
 ## 配置与使用
 
 按照`configs_template.json`的格式新建一个`configs.json`，设置用户名和密码。
