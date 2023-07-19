@@ -145,7 +145,7 @@ class TVSubscriber:
         self._last_resp.raise_for_status()
         # .json() is None if failed
         self.last_json = self._parse_json('网络名错误')
-        self._raise_for_json_status('获取频道列表失败！')
+        self._raise_for_json_status(f'获取{network}频道列表失败！')
         if 'channels' not in self.last_json:
             raise ApiException('频道列表响应信息格式错误！', response_json=self.last_json)
         try:
@@ -155,7 +155,7 @@ class TVSubscriber:
 
         return channels
 
-    def get_epgs(self, sid: Union[int, str], network: NETWORKS, epgtoken, tsid: Union[int, str] = None, **kwargs) -> list[Event]:
+    def get_epgs(self, sid: Union[int, str], network: NETWORKS, epgtoken: str, tsid: Union[int, str] = None, **kwargs) -> list[Event]:
         """
         获取EPG，即指定频道的具体节目表
 
@@ -253,9 +253,9 @@ class TVSubscriber:
         #  'mins30price': '3.5',
         #  'count': None,
         #  'events': []}
-        self._raise_for_json_status('获取EPG信息失败！')
+        self._raise_for_json_status(f'获取频道sid={sid}的EPG信息失败！')
         if 'events' not in self.last_json:
-            raise ApiException('节目响应信息格式错误！', response_json=self.last_json)
+            raise ApiException(f'频道sid={sid}的节目响应信息格式错误！', response_json=self.last_json)
         try:
             events = [Event(**event) for event in self.last_json['events']
                       if event.get('event_name') and event.get('event_text') and event.get('category')]
@@ -370,7 +370,7 @@ class TVSubscriber:
         # assert status_code
         self._last_resp.raise_for_status()
         self.last_json = self._parse_json()
-        self._raise_for_json_status('预约失败！')
+        self._raise_for_json_status(f'预约失败！reservetoken={reservetoken}')
         # on fail:
         # {'response_code': 403,
         #  'responsetime': '2023-05-08 18:32:31',

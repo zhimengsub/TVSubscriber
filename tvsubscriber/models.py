@@ -1,7 +1,7 @@
 import datetime
 from typing import Optional, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from tvsubscriber.utils.const import NETWORKS
 
@@ -10,11 +10,11 @@ class Channel(BaseModel):
     """频道"""
     service: str
     """频道名称"""
-    sid: str
+    sid: int = Field(strict=False)
     """频道SID"""
-    tsid: Optional[str]
+    tsid: Optional[int] = Field(default=None, strict=False)
     """频道TSID"""
-    epgtoken: Optional[str]
+    epgtoken: Optional[str] = None
     """请求EPG需要的token。可以被刷新，因此设为Optional"""
     network: NETWORKS
     """频道所属网络"""
@@ -24,19 +24,16 @@ class Channel(BaseModel):
 
     def __eq__(self, other):
         # be careful with isinstance! packages imported from different levels would result in false.
-        if (
+        return (
             hasattr(other, 'service') and
             hasattr(other, 'sid') and
             hasattr(other, 'tsid') and
-            hasattr(other, 'network')
-        ):
-            return (
-                self.service == other.service and
-                self.sid == other.sid and
-                self.tsid is None and other.tsid is None or self.tsid == other.tsid and
-                self.network == other.network
-            )
-        return False
+            hasattr(other, 'network') and
+            self.service == other.service and
+            self.sid == other.sid and
+            (self.tsid is None and other.tsid is None or self.tsid == other.tsid) and
+            self.network == other.network
+        )
 
 
 class Event(BaseModel):
@@ -45,13 +42,13 @@ class Event(BaseModel):
     """节目播出日期解析格式"""
     __FORMAT_STARTTIME__ = '%H:%M:%S'
     """节目开始时间解析格式"""
-    sid: str
+    sid: int = Field(strict=False)
     """频道SID"""
-    tsid: str
+    tsid: int = Field(strict=False)
     """频道TSID"""
-    onid: str
+    onid: int = Field(strict=False)
     """频道ONID"""
-    eid: str
+    eid: int = Field(strict=False)
     """节目EID"""
     service: str
     """频道名称"""
@@ -59,13 +56,13 @@ class Event(BaseModel):
     """节目播出日期"""
     starttime: datetime.time
     """节目开始时间"""
-    timestamp: int
+    timestamp: datetime.datetime
     """节目开始时间戳"""
     week: str
     """星期（0-6）"""
     week_text: str
     """曜日（日月火水木金土）"""
-    duration: int
+    duration: float
     """时长（分钟）"""
     event_name: str
     """节目名称"""
@@ -79,7 +76,7 @@ class Event(BaseModel):
     """播出分辨率（1080i，480i）"""
     network: NETWORKS
     """频道所属网络（Kanto，Kansai，Nagoya，BS，CS）"""
-    price: Union[int, float]
+    price: Union[int, float] = Field(strict=False)
     """价格"""
     reservetoken: str
     """预约需要的token"""
@@ -120,9 +117,9 @@ class Reservation(BaseModel):
     """预约结果"""
     __FORMAT_STARTTIME__: str = '%Y-%m-%d %H:%M:%S'
     """节目开始时间解析格式"""
-    sid: str
+    sid: int = Field(strict=False)
     """频道SID"""
-    eid: str
+    eid: int = Field(strict=False)
     """节目EID"""
     service: str
     """频道名称"""
@@ -130,11 +127,11 @@ class Reservation(BaseModel):
     """节目开始日期时间"""
     duration: str
     """时长（分钟）"""
-    price: str
+    price: Union[int, float] = Field(strict=False)
     """价格"""
-    resid: str
+    resid: int = Field(strict=False)
     """预约ID"""
-    orderid: str
+    orderid: int = Field(strict=False)
     """订单ID"""
     server: int
     """已预约服务器编号"""
@@ -159,17 +156,17 @@ class UserInfo(BaseModel):
     """余额"""
     email: str
     """用户邮箱"""
-    readnid: Optional[str]
+    readnid: Optional[str] = None
     """已读通知ID"""
     online: str
     """Cookies生命标记"""
     onlinetoken: str
     """用户API Token"""
-    lastip: Optional[str]
+    lastip: Optional[str] = None
     """上次登陆IP"""
-    lasttime: Optional[datetime.datetime]
+    lasttime: Optional[datetime.datetime] = None
     """上次登录日期时间"""
-    times_draw: Optional[str]
+    times_draw: Optional[str] = None
     """剩余抽奖次数"""
     def __init__(self, *, lasttime: str, **kwargs):
         lasttime = datetime.datetime.strptime(lasttime, self.__FORMAT_LASTTIME__)
