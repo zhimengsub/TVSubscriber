@@ -14,6 +14,7 @@ class TVSubscriber:
     def __init__(self):
         self._client = self._default_client()
         self._username = ''
+        self._password = ''
         self._token = ''
         self.last_json = {}
         self._last_resp = None  # type: Optional[httpx.Response]
@@ -92,6 +93,7 @@ class TVSubscriber:
         #  'information': '登陆失败，请重试！您当前已尝试：1次'}
         self._raise_for_json_status('登陆失败')
         self._username = username
+        self._password = password
         self._token = self.last_json['onlinetoken']
         return self.last_json
 
@@ -547,9 +549,13 @@ class TVSubscriber:
     def is_online(self) -> bool:
         try:
             user = self.get_userinfo()
+            return user.online == UserInfo.__ONLINE__
         except ApiException:
-            return False
-        return user.online == UserInfo.__ONLINE__
+            try:
+                self.login(self._username, self._password)
+                return self.is_online()
+            except ApiException:
+                return False
 
     def __repr__(self):
         return 'TVSubscriber("' + self._username + '")'
