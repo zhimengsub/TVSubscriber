@@ -1,8 +1,6 @@
-import copy
-import json
 from json import JSONDecodeError
 import httpx
-from typing import Literal, Optional, Union, Any, Type
+from typing import Literal, Optional, Union
 
 from tvsubscriber.utils.const import API, MLSUB, NETWORKS
 from tvsubscriber.utils.errors import ApiException
@@ -95,6 +93,7 @@ class TVSubscriber:
         self._username = username
         self._password = password
         self._token = self.last_json['onlinetoken']
+        print(f'{self=}')
         return self.last_json
 
     def get_channels(self, network: NETWORKS, **kwargs) -> list[Channel]:
@@ -549,21 +548,28 @@ class TVSubscriber:
     def is_online(self) -> bool:
         try:
             user = self.get_userinfo()
-            return user.online == UserInfo.__ONLINE__
-        except ApiException:
+            print('last json:', self.last_json)
+            assert user.online == UserInfo.__ONLINE__
+            return True
+        except (ApiException, AssertionError):
             try:
+                print('relogin with', self._username, self._password)
                 self.login(self._username, self._password)
                 return self.is_online()
             except ApiException:
+                print('relogin fail!')
                 return False
 
     def __repr__(self):
-        return 'TVSubscriber("' + self._username + '")'
+        return f'TVSubscriber("{self._username}", "{self._password}", "{self._token}")'
 
     def __copy__(self):
         new_object = self.__class__()
         new_object._username = self._username
+        new_object._password = self._password
         new_object._token = self._token
+        print(f'{self=}')
+        print(f'{new_object=}')
         return new_object
 
     def __deepcopy__(self, memo):
