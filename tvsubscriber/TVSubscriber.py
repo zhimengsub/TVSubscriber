@@ -548,7 +548,7 @@ class TVSubscriber:
     def is_online(self) -> bool:
         try:
             user = self.get_userinfo()
-            print('last json:', self.last_json)
+            # print('last json:', self.last_json)
             assert user.online == UserInfo.__ONLINE__
             return True
         except (ApiException, AssertionError):
@@ -568,8 +568,8 @@ class TVSubscriber:
         new_object._username = self._username
         new_object._password = self._password
         new_object._token = self._token
-        print(f'{self=}')
-        print(f'{new_object=}')
+        # print(f'{self=}')
+        # print(f'{new_object=}')
         return new_object
 
     def __deepcopy__(self, memo):
