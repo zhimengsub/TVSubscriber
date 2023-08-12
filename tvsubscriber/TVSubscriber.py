@@ -10,6 +10,7 @@ from tvsubscriber.models import Channel, Event, Reservation, UserInfo
 # 不同api返回的id数据类型不一样，内部统一以str处理
 class TVSubscriber:
     def __init__(self):
+        # TODO 登陆后从线上获取已订阅的列表，不能本地保存
         self._client = self._default_client()
         self._username = ''
         self._password = ''
@@ -24,6 +25,7 @@ class TVSubscriber:
             headers={
                 "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0",
             },
+            timeout=10,
             # proxies={
             #     "all://": "http://localhost:9999",
             # }
@@ -366,7 +368,8 @@ class TVSubscriber:
                 'network': network,
                 'reservetoken': reservetoken
             },
-            **kwargs
+            **kwargs,
+            timeout=30,
         )
         # assert status_code
         self._last_resp.raise_for_status()
