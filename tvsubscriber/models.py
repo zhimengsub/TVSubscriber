@@ -125,7 +125,7 @@ class Reservation(BaseModel):
     """频道名称"""
     starttime: datetime.datetime
     """节目开始日期时间"""
-    duration: str
+    duration: Union[int, float] = Field(strict=False)
     """时长（分钟）"""
     price: Union[int, float] = Field(strict=False)
     """价格"""

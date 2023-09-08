@@ -349,7 +349,7 @@ class TVSubscriber:
            'service': 'フジテレビ',
            'title': 'テレビアニメ「鬼滅の刃」刀鍛冶の里編[字][解][デ]',
            'starttime': '2023-05-14 23:15:00',
-           'duration': '30',
+           'duration': 30,
            'price': '3.5',
            'resid': '25512',
            'orderid': '29373',
